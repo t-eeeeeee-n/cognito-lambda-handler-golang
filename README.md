@@ -10,48 +10,15 @@
 ## 設定手順
 
 1. **GitHubのSecretに環境変数の情報を登録**
-    - `AWS_ACCOUNT_ID`: AWSアカウントID（例：747280000000）
+    - `AWS_ACCOUNT_ID`: AWSアカウントID（例：123456789012）
     - `AWS_REGION`: AWSリージョン（例：ap-northeast-1）
-    - `AWS_ROLE_TO_ASSUME`: AWS IAMロールのARN（例：arn:aws:iam::747280000000:role/YourRoleName）
+    - `AWS_ROLE_TO_ASSUME`: AWS IAMロールのARN（例：arn:aws:iam::123456789012:role/YourRoleName）
     - `AWS_ACCESS_KEY_ID`: [アクセスキーID]
     - `AWS_SECRET_ACCESS_KEY`: [シークレットアクセスキー]
 
-2. **ECRのリポジトリに許可を追加**
-   - リポジトリの許可は ecr_create_repository.sh スクリプトを実行することで自動的に設定されます。
-   - IAMポリシー例:
-      ```json
-     {
-        "Version": "2008-10-17",
-        "Statement": [
-          {
-            "Sid": "LambdaECRImageRetrievalPolicy",
-            "Effect": "Allow",
-            "Principal": {
-              "Service": "lambda.amazonaws.com"
-            },
-            "Action": [
-              "ecr:BatchGetImage",
-              "ecr:DeleteRepositoryPolicy",
-              "ecr:GetDownloadUrlForLayer",
-              "ecr:GetImage",
-              "ecr:GetRepositoryPolicy",
-              "ecr:SetRepositoryPolicy"
-            ],
-            "Condition": {
-              "StringLike": {
-                "aws:sourceArn": "arn:aws:lambda:ap-northeast-1:747280103911:function:*"
-              }
-            }
-          }
-        ]
-      }
-     ```
 ## 使用方法
 
-1. **ECRリポジトリの作成**:
-   - `ecr_create_repository.sh` スクリプトを実行してECRリポジトリを作成します（初回のみ必要です）。
-
-2. **GitHub Actionsの実行**:
+1. **GitHub Actionsの実行**:
    - リポジトリに変更をコミットし、`main` ブランチにプッシュするとGitHub Actionsのワークフローが自動的に開始されます。
 
 ## GitHub Actionsワークフローの概要
@@ -61,11 +28,14 @@
 1. **リポジトリ名の抽出**:
    - GitHubリポジトリ名を抽出し、後続のステップで使用します。
 
-2. **Dockerイメージのビルドとプッシュ**:
+2. **ECRリポジトリの存在確認と作成**:
+   - 指定された名前のECRリポジトリが存在するか確認し、存在しない場合はGitHub Actions内で自動的に作成します。
+
+3. **Dockerイメージのビルドとプッシュ**:
    - AWSの認証情報を設定し、ECRにログインします。
    - Dockerイメージをビルドし、ECRにプッシュします。
 
-3. **AWS CloudFormationによるデプロイ**:
+4. **AWS CloudFormationによるデプロイ**:
    - CloudFormationテンプレートを使用して、新しいイメージを使用するためのAWSリソースをデプロイまたは更新します。
 
 このテンプレートを使用することで、ソースコードの変更を簡単かつ迅速にAWSにデプロイすることができます。
