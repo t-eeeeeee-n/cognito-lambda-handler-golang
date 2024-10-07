@@ -10,7 +10,7 @@ on:
 jobs:
   extract-commit-message:
     # GITHUB_ACTION_EXEC default false
-    if: false
+    if: true
     runs-on: ubuntu-latest
     outputs:
       repository-name: ${{ steps.extract-repo-name.outputs.repository-name }}
