@@ -1,0 +1,15 @@
+version: '3.11'
+
+services:
+  python:
+    container_name: python-container-test
+    image: "python-container-test"
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile
+    volumes:
+      - ./src:/var/task
+      - ./docker/requirements.txt:/tmp/requirements.txt
+    tty: true
+    env_file:
+      - .env
