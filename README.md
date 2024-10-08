@@ -1,41 +1,91 @@
-# GitHub Actionsのテンプレート
+# Cognito Lambda Handler (Golang)
 
-このテンプレートは、GitHub Actionsを使用してAWS Elastic Container Registry（ECR）にDockerイメージをプッシュし、その後AWS CloudFormationを使用してデプロイするためのものです。
+このプロジェクトは、Golangで書かれたLambda関数ハンドラーです。Amazon ECRからコンテナイメージを使用して、AWS Lambda上でデプロイすることを想定しています。
 
-## 前提条件
+## 必要要件
 
-- OpenID Connect (OIDC) を使用してAWSに認証することができます。
-- 参照資料: [GitHub Actionsを使ったOIDCによるAWS認証の方法](https://zenn.dev/kou_pg_0131/articles/gh-actions-oidc-aws)
+- [Docker](https://www.docker.com/get-started)
+- [AWS SAM CLI](https://docs.aws.amazon.com/ja_jp/serverless-application-model/latest/developerguide/install-sam-cli.html)
+- Golang 1.19 以上
 
-## 設定手順
+## セットアップ
 
-1. **GitHubのSecretに環境変数の情報を登録**
-    - `AWS_ACCOUNT_ID`: AWSアカウントID（例：123456789012）
-    - `AWS_REGION`: AWSリージョン（例：ap-northeast-1）
-    - `AWS_ROLE_TO_ASSUME`: AWS IAMロールのARN（例：arn:aws:iam::123456789012:role/YourRoleName）
-    - `AWS_ACCESS_KEY_ID`: [アクセスキーID]
-    - `AWS_SECRET_ACCESS_KEY`: [シークレットアクセスキー]
+1. リポジトリをクローンします:
+   ```bash
+   git clone https://github.com/your-repo/cognito-lambda-handler-golang.git
+   cd cognito-lambda-handler-golang
+   ```
+2. 依存関係をインストールします:
+   ```bash
+   go mod tidy
+   ```
 
-## 使用方法
+## ローカル開発とテスト
 
-1. **GitHub Actionsの実行**:
-   - リポジトリに変更をコミットし、`main` ブランチにプッシュするとGitHub Actionsのワークフローが自動的に開始されます。
+AWS SAM CLI と Docker を使用して、ローカルでLambda関数を実行することができます。以下の手順に従って、Lambda関数をローカルでビルドし、実行します。
 
-## GitHub Actionsワークフローの概要
+### Dockerイメージのビルド
 
-ワークフローは以下のステップで構成されています：
+まず、docker-compose を使用してDockerイメージをビルドします。
 
-1. **リポジトリ名の抽出**:
-   - GitHubリポジトリ名を抽出し、後続のステップで使用します。
+```bash
+docker-compose build
+```
 
-2. **ECRリポジトリの存在確認と作成**:
-   - 指定された名前のECRリポジトリが存在するか確認し、存在しない場合はGitHub Actions内で自動的に作成します。
+このコマンドは、提供された Dockerfile を使用してDockerイメージをビルドします。
 
-3. **Dockerイメージのビルドとプッシュ**:
-   - AWSの認証情報を設定し、ECRにログインします。
-   - Dockerイメージをビルドし、ECRにプッシュします。
+### SAMを使ったローカルでのLambda関数の実行
 
-4. **AWS CloudFormationによるデプロイ**:
-   - CloudFormationテンプレートを使用して、新しいイメージを使用するためのAWSリソースをデプロイまたは更新します。
+Dockerイメージがビルドされたら、AWS SAM CLI を使ってローカルでLambda関数を実行できます。
 
-このテンプレートを使用することで、ソースコードの変更を簡単かつ迅速にAWSにデプロイすることができます。
+SAMプロジェクトをビルドします:
+
+```bash
+sam build --template-file cloudformation/local-template.yaml
+```
+
+このコマンドは、Lambda関数をパッケージ化し、ローカル実行用に準備します。
+
+ローカルでLambda関数を実行します:
+
+```bash
+sam local invoke MyLambdaFunction --template-file cloudformation/local-template.yaml
+```
+
+これにより、ビルドしたDockerイメージを使って、ローカルでLambda関数が実行されます。次のような出力が表示されるはずです:
+
+```bash
+"Hello, World"
+```
+
+
+### イベントペイロードを使用したテスト
+
+特定のイベントペイロードでLambda関数をテストするには、`event.json` ファイルを作成し、入力データを指定します。
+
+例: `event.json`
+
+```json
+{ "key": "value" }
+```
+
+次に、以下のコマンドでイベントを使ってLambda関数を実行します:
+
+```bash
+sam local invoke MyLambdaFunction --template-file cloudformation/local-template.yaml --event event.json
+```
+
+これにより、Lambda関数にイベントが送信された場合の動作をシミュレートできます。
+
+### AWSへのデプロイ
+
+ローカルで関数のテストが完了したら、次のコマンドを使用してAWSにデプロイできます:
+
+```bash
+sam deploy --guided
+```
+
+このコマンドを実行すると、スタック名、リージョン、IAMロールなどのパラメータを指定しながら、対話形式でデプロイできます。
+
+
+

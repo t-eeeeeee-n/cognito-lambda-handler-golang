@@ -1,0 +1,12 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  MyLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: MyLocalLambdaFunction
+      PackageType: Image
+      ImageUri: lambda-image:latest  # ローカルで使うイメージ名
+      MemorySize: 128
+      Timeout: 30
+      Role: arn:aws:iam::123456789012:role/lambda-role  # 適当なロールを設定しても問題なし
