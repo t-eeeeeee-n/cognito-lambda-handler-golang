@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 )
 
 var cognitoService *cognito.Service
@@ -50,23 +51,41 @@ func (rw *ResponseWriter) ToAPIGatewayProxyResponse() events.APIGatewayProxyResp
 
 // NewRequest APIGatewayリクエストをHTTPリクエストに変換
 func NewRequest(req events.APIGatewayProxyRequest) *http.Request {
-	httpReq, _ := http.NewRequest(req.HTTPMethod, req.Path, nil)
+	var body *strings.Reader
+	if req.Body != "" {
+		body = strings.NewReader(req.Body)
+	} else {
+		body = strings.NewReader("")
+	}
+	httpReq, _ := http.NewRequest(req.HTTPMethod, req.Path, body)
 	for k, v := range req.Headers {
 		httpReq.Header.Set(k, v)
 	}
 	return httpReq
 }
 
-// Lambdaハンドラとしてリクエストを処理
 func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	// ルーティングを登録
 	r := routes.RegisterRoutes(cognitoService)
-
-	// カスタムResponseWriterでレスポンスをキャプチャ
 	rw := &ResponseWriter{}
 	r.ServeHTTP(rw, NewRequest(req))
 
-	// APIGatewayProxyResponseとしてレスポンスを返す
+	// http.Header (map[string][]string) を map[string]string に変換
+	headers := make(map[string]string)
+	for k, v := range rw.Headers {
+		if len(v) > 0 {
+			headers[k] = v[0]
+		}
+	}
+
+	// エラー時のレスポンス処理
+	if rw.StatusCode >= 400 {
+		return events.APIGatewayProxyResponse{
+			StatusCode: rw.StatusCode,
+			Body:       rw.Body,
+			Headers:    headers,
+		}, nil
+	}
+
 	return rw.ToAPIGatewayProxyResponse(), nil
 }
 
@@ -81,14 +100,8 @@ func init() {
 	if err != nil {
 		log.Fatalf("Failed to initialize Cognito service: %v", err)
 	}
-
-	// エラーチェック
-	if cognitoService == nil {
-		log.Fatal("Failed to initialize cognitoService")
-	}
 }
 
 func main() {
-	// Lambda関数のハンドラを起動
 	lambda.Start(handler)
 }

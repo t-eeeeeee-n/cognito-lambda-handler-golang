@@ -16,7 +16,23 @@ type SignUpRequest struct {
 }
 
 func SignUpHandler(w http.ResponseWriter, r *http.Request, cognitoService *cognito.Service) {
+	// Cognitoサービスの初期化確認
+	if cognitoService == nil {
+		log.Println("Cognito service is not initialized")
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
 	var req SignUpRequest
+
+	// リクエストボディが空でないかチェック
+	if r.Body == nil {
+		log.Println("Request body is nil")
+		http.Error(w, "Request body is empty", http.StatusBadRequest)
+		return
+	}
+
+	// リクエストのデコード
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		log.Printf("Error decoding request: %v", err)
