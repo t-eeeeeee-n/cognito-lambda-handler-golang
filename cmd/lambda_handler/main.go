@@ -71,17 +71,20 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 }
 
 func init() {
-	// 環境変数からCognitoのクライアントIDを取得
 	clientID := os.Getenv("AWS_COGNITO_CLIENT_ID")
 	if clientID == "" {
 		log.Fatal("AWS_COGNITO_CLIENT_ID is not set")
 	}
 
-	// Cognitoサービスの初期化
 	var err error
 	cognitoService, err = cognito.NewCognitoService(clientID)
 	if err != nil {
 		log.Fatalf("Failed to initialize Cognito service: %v", err)
+	}
+
+	// エラーチェック
+	if cognitoService == nil {
+		log.Fatal("Failed to initialize cognitoService")
 	}
 }
 

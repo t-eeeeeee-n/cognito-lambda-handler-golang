@@ -19,7 +19,8 @@ func SignUpHandler(w http.ResponseWriter, r *http.Request, cognitoService *cogni
 	var req SignUpRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
+		log.Printf("Error decoding request: %v", err)
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
 
