@@ -72,7 +72,7 @@ sam local invoke MyLambdaFunction --template-file cloudformation/local-template.
 次に、以下のコマンドでイベントを使ってLambda関数を実行します:
 
 ```bash
-sam local invoke MyLambdaFunction --template-file cloudformation/local-template.yaml --event event.json
+sam local invoke MyLambdaFunction --template-file cloudformation/local-template.yaml --event event.json --env-vars env.json
 ```
 
 これにより、Lambda関数にイベントが送信された場合の動作をシミュレートできます。

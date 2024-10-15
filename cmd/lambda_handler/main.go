@@ -1,48 +1,91 @@
 package main
 
 import (
-	"context"
-	"fmt"
-	"log"
-	"os"
-
 	"cognito-lambda-handler/internal/cognito"
+	"cognito-lambda-handler/routes"
+	"context"
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"log"
+	"net/http"
+	"os"
 )
 
-// SignUpEvent はLambda関数に渡されるイベントの構造体です。
-type SignUpEvent struct {
-	Email       string `json:"email"`
-	Password    string `json:"password"`
-	PhoneNumber string `json:"phone_number"`
-	GivenName   string `json:"given_name"`
-	FamilyName  string `json:"family_name"`
+var cognitoService *cognito.Service
+
+// ResponseWriter カスタムResponseWriterの定義
+type ResponseWriter struct {
+	StatusCode int
+	Headers    http.Header
+	Body       string
 }
 
-func Handler(ctx context.Context, event SignUpEvent) (string, error) {
-	// Cognitoクライアントの初期化
+func (rw *ResponseWriter) Header() http.Header {
+	if rw.Headers == nil {
+		rw.Headers = http.Header{}
+	}
+	return rw.Headers
+}
+
+func (rw *ResponseWriter) Write(b []byte) (int, error) {
+	rw.Body = string(b)
+	return len(b), nil
+}
+
+func (rw *ResponseWriter) WriteHeader(statusCode int) {
+	rw.StatusCode = statusCode
+}
+
+func (rw *ResponseWriter) ToAPIGatewayProxyResponse() events.APIGatewayProxyResponse {
+	headers := make(map[string]string)
+	for k, v := range rw.Headers {
+		headers[k] = v[0]
+	}
+	return events.APIGatewayProxyResponse{
+		StatusCode: rw.StatusCode,
+		Headers:    headers,
+		Body:       rw.Body,
+	}
+}
+
+// NewRequest APIGatewayリクエストをHTTPリクエストに変換
+func NewRequest(req events.APIGatewayProxyRequest) *http.Request {
+	httpReq, _ := http.NewRequest(req.HTTPMethod, req.Path, nil)
+	for k, v := range req.Headers {
+		httpReq.Header.Set(k, v)
+	}
+	return httpReq
+}
+
+// Lambdaハンドラとしてリクエストを処理
+func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	// ルーティングを登録
+	r := routes.RegisterRoutes(cognitoService)
+
+	// カスタムResponseWriterでレスポンスをキャプチャ
+	rw := &ResponseWriter{}
+	r.ServeHTTP(rw, NewRequest(req))
+
+	// APIGatewayProxyResponseとしてレスポンスを返す
+	return rw.ToAPIGatewayProxyResponse(), nil
+}
+
+func init() {
+	// 環境変数からCognitoのクライアントIDを取得
 	clientID := os.Getenv("AWS_COGNITO_CLIENT_ID")
 	if clientID == "" {
 		log.Fatal("AWS_COGNITO_CLIENT_ID is not set")
 	}
 
-	// Cognitoサービスのインスタンスを作成
-	cognitoService, err := cognito.NewCognitoService(clientID)
+	// Cognitoサービスの初期化
+	var err error
+	cognitoService, err = cognito.NewCognitoService(clientID)
 	if err != nil {
-		return "", fmt.Errorf("failed to initialize Cognito service: %v", err)
+		log.Fatalf("Failed to initialize Cognito service: %v", err)
 	}
-
-	// サインアップ処理の実行
-	err = cognitoService.SignUp(event.Email, event.Password, event.PhoneNumber, event.GivenName, event.FamilyName)
-	if err != nil {
-		return "", fmt.Errorf("failed to sign up user: %v", err)
-	}
-
-	// 成功時のメッセージを返す
-	return fmt.Sprintf("User %s signed up successfully", event.Email), nil
 }
 
 func main() {
 	// Lambda関数のハンドラを起動
-	lambda.Start(Handler)
+	lambda.Start(handler)
 }
