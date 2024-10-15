@@ -3,7 +3,11 @@ package handlers
 import (
 	"cognito-lambda-handler/internal/cognito"
 	"encoding/json"
+	"errors"
+	"log"
 	"net/http"
+
+	"github.com/aws/smithy-go"
 )
 
 type SignUpRequest struct {
@@ -15,23 +19,48 @@ type SignUpRequest struct {
 }
 
 func SignUpHandler(w http.ResponseWriter, r *http.Request, cognitoService *cognito.Service) {
+	// Cognitoサービスの初期化確認
 	if cognitoService == nil {
 		http.Error(w, "Cognito service is not initialized", http.StatusInternalServerError)
 		return
 	}
 
 	var req SignUpRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+
+	// リクエストのデコード
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
 
-	if err := cognitoService.SignUp(req.Email, req.Password, req.PhoneNumber, req.GivenName, req.FamilyName); err != nil {
-		http.Error(w, "Failed to sign up user", http.StatusInternalServerError)
+	// サインアップ処理の呼び出し
+	err = cognitoService.SignUp(req.Email, req.Password, req.PhoneNumber, req.GivenName, req.FamilyName)
+	if err != nil {
+		var awsErr smithy.APIError
+		// AWSエラーが発生した場合の処理
+		if ok := errors.As(err, &awsErr); ok {
+			switch awsErr.ErrorCode() {
+			case "UsernameExistsException":
+				// メールアドレスの重複エラー
+				http.Error(w, "User with this email already exists", http.StatusConflict)
+			default:
+				// その他のエラー
+				http.Error(w, "Failed to sign up user", http.StatusInternalServerError)
+			}
+		} else {
+			// その他のエラー
+			http.Error(w, "Failed to sign up user", http.StatusInternalServerError)
+		}
+		log.Printf("Error signing up user %s: %v", req.Email, err)
 		return
 	}
 
+	// 成功メッセージの返却
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Sign up successful"})
+	if err := json.NewEncoder(w).Encode(map[string]string{"message": "Sign up successful"}); err != nil {
+		log.Printf("Error encoding response for user %s: %v", req.Email, err)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
 }
