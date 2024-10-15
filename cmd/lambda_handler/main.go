@@ -14,49 +14,32 @@ import (
 
 var cognitoService *cognito.Service
 
-// ResponseWriter カスタムResponseWriterの定義
+// ResponseWriter APIGatewayProxyResponse用のカスタムResponseWriter
 type ResponseWriter struct {
 	StatusCode int
-	Headers    http.Header
+	Headers    map[string]string
 	Body       string
 }
 
+// Headerは、ヘッダーのマップを返します
 func (rw *ResponseWriter) Header() http.Header {
-	if rw.Headers == nil {
-		rw.Headers = http.Header{}
-	}
-	return rw.Headers
+	return http.Header{}
 }
 
+// Write メソッドは、レスポンスボディを記録します
 func (rw *ResponseWriter) Write(b []byte) (int, error) {
 	rw.Body = string(b)
 	return len(b), nil
 }
 
+// WriteHeader メソッドは、ステータスコードを設定します
 func (rw *ResponseWriter) WriteHeader(statusCode int) {
 	rw.StatusCode = statusCode
 }
 
-func (rw *ResponseWriter) ToAPIGatewayProxyResponse() events.APIGatewayProxyResponse {
-	headers := make(map[string]string)
-	for k, v := range rw.Headers {
-		headers[k] = v[0]
-	}
-	return events.APIGatewayProxyResponse{
-		StatusCode: rw.StatusCode,
-		Headers:    headers,
-		Body:       rw.Body,
-	}
-}
-
 // NewRequest APIGatewayリクエストをHTTPリクエストに変換
 func NewRequest(req events.APIGatewayProxyRequest) *http.Request {
-	var body *strings.Reader
-	if req.Body != "" {
-		body = strings.NewReader(req.Body)
-	} else {
-		body = strings.NewReader("")
-	}
+	body := strings.NewReader(req.Body)
 	httpReq, _ := http.NewRequest(req.HTTPMethod, req.Path, body)
 	for k, v := range req.Headers {
 		httpReq.Header.Set(k, v)
@@ -66,27 +49,17 @@ func NewRequest(req events.APIGatewayProxyRequest) *http.Request {
 
 func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	r := routes.RegisterRoutes(cognitoService)
-	rw := &ResponseWriter{}
-	r.ServeHTTP(rw, NewRequest(req))
 
-	// http.Header (map[string][]string) を map[string]string に変換
-	headers := make(map[string]string)
-	for k, v := range rw.Headers {
-		if len(v) > 0 {
-			headers[k] = v[0]
-		}
-	}
+	httpReq := NewRequest(req)
 
-	// エラー時のレスポンス処理
-	if rw.StatusCode >= 400 {
-		return events.APIGatewayProxyResponse{
-			StatusCode: rw.StatusCode,
-			Body:       rw.Body,
-			Headers:    headers,
-		}, nil
-	}
+	rw := &ResponseWriter{Headers: map[string]string{}}
+	r.ServeHTTP(rw, httpReq)
 
-	return rw.ToAPIGatewayProxyResponse(), nil
+	return events.APIGatewayProxyResponse{
+		StatusCode: rw.StatusCode,
+		Headers:    rw.Headers,
+		Body:       rw.Body,
+	}, nil
 }
 
 func init() {
