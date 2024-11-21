@@ -12,11 +12,13 @@ import (
 )
 
 type Service struct {
-	client   *cognitoidentityprovider.Client
-	clientID string
+	client       *cognitoidentityprovider.Client
+	clientId     string
+	clientSecret string
+	poolId       string
 }
 
-func NewCognitoService(clientID string) (*Service, error) {
+func NewCognitoService(clientId string, clientSecret string, poolId string) (*Service, error) {
 	cfg, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
 		return nil, fmt.Errorf("failed to load SDK config: %w", err)
@@ -25,8 +27,10 @@ func NewCognitoService(clientID string) (*Service, error) {
 	cognitoClient := cognitoidentityprovider.NewFromConfig(cfg)
 
 	return &Service{
-		client:   cognitoClient,
-		clientID: clientID,
+		client:       cognitoClient,
+		clientId:     clientId,
+		clientSecret: clientSecret,
+		poolId:       poolId,
 	}, nil
 }
 

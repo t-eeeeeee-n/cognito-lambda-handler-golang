@@ -8,13 +8,13 @@ import (
 )
 
 func (s *Service) ForgotPassword(email string) error {
-	secretHash, err := generateSecretHash(email, s.clientID)
+	secretHash, err := generateSecretHash(email, s.clientId)
 	if err != nil {
 		return fmt.Errorf("failed to generate secret hash: %v", err)
 	}
 
 	input := &cognitoidentityprovider.ForgotPasswordInput{
-		ClientId:   aws.String(s.clientID),
+		ClientId:   aws.String(s.clientId),
 		SecretHash: aws.String(secretHash),
 		Username:   aws.String(email),
 	}

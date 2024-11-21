@@ -6,6 +6,7 @@ import (
 	"context"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/joho/godotenv"
 	"log"
 	"net/http"
 	"os"
@@ -21,7 +22,7 @@ type ResponseWriter struct {
 	Body       string
 }
 
-// Headerは、ヘッダーのマップを返します
+// Header Headerは、ヘッダーのマップを返します
 func (rw *ResponseWriter) Header() http.Header {
 	return http.Header{}
 }
@@ -47,7 +48,7 @@ func NewRequest(req events.APIGatewayProxyRequest) *http.Request {
 	return httpReq
 }
 
-func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	r := routes.RegisterRoutes(cognitoService)
 
 	httpReq := NewRequest(req)
@@ -63,18 +64,44 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 }
 
 func init() {
-	clientID := os.Getenv("AWS_COGNITO_CLIENT_ID")
-	if clientID == "" {
+	var err error
+	if _, exists := os.LookupEnv("AWS_LAMBDA_FUNCTION_NAME"); !exists {
+		// ローカル環境でのみ .env をロード
+		err := godotenv.Load()
+		if err != nil {
+			log.Fatalf("Error loading .env file: %v", err)
+		}
+	}
+
+	clientId := os.Getenv("AWS_COGNITO_CLIENT_ID")
+	if clientId == "" {
 		log.Fatal("AWS_COGNITO_CLIENT_ID is not set")
 	}
 
-	var err error
-	cognitoService, err = cognito.NewCognitoService(clientID)
+	clientSecret := os.Getenv("AWS_COGNITO_CLIENT_SECRET")
+	if clientSecret == "" {
+		log.Fatal("AWS_COGNITO_CLIENT_SECRET is not set")
+	}
+
+	poolId := os.Getenv("AWS_COGNITO_POOL_ID")
+	if poolId == "" {
+		log.Fatal("AWS_COGNITO_POOL_ID is not set")
+	}
+
+	cognitoService, err = cognito.NewCognitoService(clientId, clientSecret, poolId)
 	if err != nil {
 		log.Fatalf("Failed to initialize Cognito service: %v", err)
 	}
 }
 
 func main() {
-	lambda.Start(handler)
+	if _, isLambda := os.LookupEnv("AWS_LAMBDA_FUNCTION_NAME"); isLambda {
+		// AWS Lambda環境
+		lambda.Start(Handler)
+	} else {
+		// ローカル環境
+		r := routes.RegisterRoutes(cognitoService)
+		log.Println("Starting local server on :8080")
+		log.Fatal(http.ListenAndServe(":8080", r))
+	}
 }
