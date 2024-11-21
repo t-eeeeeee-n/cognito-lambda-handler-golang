@@ -22,7 +22,7 @@ type ResponseWriter struct {
 	Body       string
 }
 
-// Header Headerは、ヘッダーのマップを返します
+// Header ヘッダーのマップを返します
 func (rw *ResponseWriter) Header() http.Header {
 	return http.Header{}
 }
@@ -48,7 +48,7 @@ func NewRequest(req events.APIGatewayProxyRequest) *http.Request {
 	return httpReq
 }
 
-func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func Handler(_ context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	r := routes.RegisterRoutes(cognitoService)
 
 	httpReq := NewRequest(req)
