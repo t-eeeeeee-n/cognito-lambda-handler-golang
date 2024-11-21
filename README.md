@@ -43,6 +43,10 @@ SAMプロジェクトをビルドします:
 ```bash
 sam build --template-file cloudformation/local-template.yaml
 ```
+or
+```bash
+sam.cmd build --template-file cloudformation/local-template.yaml
+```
 
 このコマンドは、Lambda関数をパッケージ化し、ローカル実行用に準備します。
 
@@ -50,6 +54,10 @@ sam build --template-file cloudformation/local-template.yaml
 
 ```bash
 sam local invoke MyLambdaFunction --template-file cloudformation/local-template.yaml
+```
+or
+```bash
+sam.cmd local invoke MyLambdaFunction --template-file cloudformation/local-template.yaml
 ```
 
 これにより、ビルドしたDockerイメージを使って、ローカルでLambda関数が実行されます。次のような出力が表示されるはずです:
@@ -74,6 +82,10 @@ sam local invoke MyLambdaFunction --template-file cloudformation/local-template.
 ```bash
 sam local invoke MyLambdaFunction --template-file cloudformation/local-template.yaml --event event.json --env-vars env.json
 ```
+or
+```bash
+sam.cmd local invoke MyLambdaFunction --template-file cloudformation/local-template.yaml --event event.json --env-vars env.json
+```
 
 これにより、Lambda関数にイベントが送信された場合の動作をシミュレートできます。
 
@@ -88,4 +100,63 @@ sam deploy --guided
 このコマンドを実行すると、スタック名、リージョン、IAMロールなどのパラメータを指定しながら、対話形式でデプロイできます。
 
 
+## ローカルでAPIサーバ立ち上げてリクエスト
 
+以下の手順に従って、サーバーをローカルで起動し、Cognitoのサインアップおよびサインインをテストします。
+
+### サーバーのビルドと起動
+
+1. Docker Compose を使用してプロジェクトをビルドします:
+
+   ```bash
+   docker compose build
+   ```
+
+2. SAM CLI を使用してプロジェクトをビルドします:
+
+   ```bash
+   sam.cmd build --template-file cloudformation/local-template.yaml
+   ```
+
+3. SAM CLI を使用してローカルAPIを起動します:
+
+   ```bash
+   sam.cmd local start-api --template-file cloudformation/local-template.yaml --env-vars env.json
+   ```
+
+   上記のコマンドにより、ローカルサーバーが `http://127.0.0.1:3000` で起動します。
+
+---
+
+### サインアップのリクエスト
+
+以下のコマンドを使用して、ユーザーをCognitoにサインアップします:
+
+```bash
+curl -X POST http://127.0.0.1:3000/signup -H "Content-Type: application/json" -d '{"email": "testuser@example.com", "password": "Password123!", "phone_number": "+1234567890", "given_name": "Test", "family_name": "User"}'
+```
+
+リクエストボディには以下の情報を含めます:
+- **email**: ユーザーのメールアドレス
+- **password**: ユーザーのパスワード
+- **phone_number**: ユーザーの電話番号
+- **given_name**: ユーザーの名
+- **family_name**: ユーザーの姓
+
+---
+
+### サインインのリクエスト
+
+サインアップ後、以下のコマンドを使用してサインインを行います:
+
+```bash
+curl -X POST http://127.0.0.1:3000/signin -H "Content-Type: application/json" -d '{"email": "test@example.com", "password": "Password123!"}'
+```
+
+リクエストボディには以下の情報を含めます:
+- **email**: サインインするユーザーのメールアドレス
+- **password**: ユーザーのパスワード
+
+サインインに成功すると、Cognitoからアクセストークンが返されます。このトークンは、認証が必要なリソースにアクセスするために使用できます。
+
+---

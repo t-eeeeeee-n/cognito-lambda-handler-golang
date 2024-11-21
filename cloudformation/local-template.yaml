@@ -9,10 +9,17 @@ Resources:
       ImageUri: lambda-image:latest  # ローカルで使うイメージ名
       MemorySize: 128
       Timeout: 30
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
       Role: arn:aws:iam::123456789012:role/lambda-role
       Environment:
         Variables:
           AWS_COGNITO_CLIENT_ID: AWS_COGNITO_CLIENT_ID
+          AWS_COGNITO_POOL_ID: AWS_COGNITO_POOL_ID
           AWS_COGNITO_CLIENT_SECRET: AWS_COGNITO_CLIENT_SECRET
           AWS_ACCESS_KEY_ID: AWS_ACCESS_KEY_ID
           AWS_SECRET_ACCESS_KEY: AWS_SECRET_ACCESS_KEY
