@@ -22,7 +22,11 @@ type ResponseWriter struct {
 	Body       string
 }
 
+<<<<<<< Updated upstream
 // Header Headerは、ヘッダーのマップを返します
+=======
+// Header ヘッダーのマップを返します
+>>>>>>> Stashed changes
 func (rw *ResponseWriter) Header() http.Header {
 	return http.Header{}
 }
@@ -48,7 +52,11 @@ func NewRequest(req events.APIGatewayProxyRequest) *http.Request {
 	return httpReq
 }
 
+<<<<<<< Updated upstream
 func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+=======
+func handler(_ context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+>>>>>>> Stashed changes
 	r := routes.RegisterRoutes(cognitoService)
 
 	httpReq := NewRequest(req)
