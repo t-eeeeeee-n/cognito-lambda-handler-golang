@@ -29,6 +29,7 @@ func SignInHandler(w http.ResponseWriter, r *http.Request, cognitoService *cogni
 	}
 
 	token, err := cognitoService.SignIn(req.Email, req.Password)
+	//authResult, err := cognitoService.SignIn(req.Email, req.Password)
 	if err != nil {
 		var awsErr smithy.APIError
 		if ok := errors.As(err, &awsErr); ok {
@@ -55,4 +56,17 @@ func SignInHandler(w http.ResponseWriter, r *http.Request, cognitoService *cogni
 		log.Printf("Error encoding response for user %s: %v", req.Email, err)
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 	}
+
+	//response := map[string]interface{}{
+	//	"accessToken":  *authResult.AccessToken,
+	//	"idToken":      *authResult.IdToken,
+	//	"refreshToken": authResult.RefreshToken,
+	//	"tokenType":    authResult.TokenType,
+	//	"expiresIn":    authResult.ExpiresIn,
+	//}
+	//
+	//if err := json.NewEncoder(w).Encode(response); err != nil {
+	//	log.Printf("Error encoding response for user %s: %v", req.Email, err)
+	//	http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	//}
 }

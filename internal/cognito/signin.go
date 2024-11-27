@@ -9,6 +9,7 @@ import (
 	"time"
 )
 
+// SignIn 全てreturnする場合は*types.AuthenticationResultType
 func (s *Service) SignIn(email, password string) (string, error) {
 	// SRPオブジェクトの作成
 	srp, err := NewCognitoSRP(email, password, s.poolId, s.clientId, s.clientSecret)
