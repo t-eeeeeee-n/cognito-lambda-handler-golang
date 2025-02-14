@@ -98,6 +98,7 @@ func main() {
 	if _, isLambda := os.LookupEnv("AWS_LAMBDA_FUNCTION_NAME"); isLambda {
 		// AWS Lambda環境
 		lambda.Start(Handler)
+
 	} else {
 		// ローカル環境
 		r := routes.RegisterRoutes(cognitoService)
