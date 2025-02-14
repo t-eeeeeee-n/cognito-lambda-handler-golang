@@ -17,6 +17,6 @@ func RegisterRoutes(cognitoService *cognito.Service) *mux.Router {
 	r.HandleFunc("/confirm", func(w http.ResponseWriter, r *http.Request) { handlers.ConfirmSignUpHandler(w, r, cognitoService) }).Methods("POST")
 	r.HandleFunc("/forgot-password", func(w http.ResponseWriter, r *http.Request) { handlers.ForgotPasswordHandler(w, r, cognitoService) }).Methods("POST")
 	r.HandleFunc("/reset-password", func(w http.ResponseWriter, r *http.Request) { handlers.ResetPasswordHandler(w, r, cognitoService) }).Methods("POST")
-
+	r.HandleFunc("/test", handlers.TestHandler).Methods("GET")
 	return r
 }
